@@ -1,0 +1,1772 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 200,
+      "panels": [],
+      "title": "Network Topology Overview",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_NTOPNG}"
+      },
+      "description": "Visual representation of top communication flows - Node sizes represent traffic volume",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1000
+              },
+              {
+                "color": "red",
+                "value": 10000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 201,
+      "options": {
+        "nodes": {
+          "mainStatUnit": "MB",
+          "secondaryStatUnit": "flows",
+          "arcs": [
+            {
+              "field": "Sent MB",
+              "color": "green"
+            },
+            {
+              "field": "Received MB",
+              "color": "blue"
+            }
+          ],
+          "stats": []
+        },
+        "edges": {
+          "mainStatUnit": "MB",
+          "secondaryStatUnit": ""
+        }
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_NTOPNG}"
+          },
+          "groupBy": [
+            {
+              "params": ["host::tag"],
+              "type": "tag"
+            }
+          ],
+          "measurement": "host:traffic",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "table",
+          "select": [
+            [
+              {
+                "params": ["bytes_sent"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              },
+              {
+                "params": ["Sent MB"],
+                "type": "alias"
+              }
+            ],
+            [
+              {
+                "params": ["bytes_rcvd"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              },
+              {
+                "params": ["Received MB"],
+                "type": "alias"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "ifid::tag",
+              "operator": "=~",
+              "value": "/^$iface_name$/"
+            }
+          ]
+        }
+      ],
+      "title": "Network Communication Graph (Top Hosts)",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Sent MB",
+              "operator": "/",
+              "right": "1048576"
+            },
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Received MB",
+              "operator": "/",
+              "right": "1048576"
+            },
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {
+              "Received MB": 2,
+              "Sent MB": 1,
+              "host": 0
+            },
+            "renameByName": {
+              "host": "Node"
+            }
+          }
+        }
+      ],
+      "type": "nodeGraph"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "id": 202,
+      "panels": [],
+      "title": "Host-to-Host Communication Matrix",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_NTOPNG}"
+      },
+      "description": "Traffic volume between local hosts - darker colors indicate higher traffic",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "color-background"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-green",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 100
+              },
+              {
+                "color": "yellow",
+                "value": 1000
+              },
+              {
+                "color": "orange",
+                "value": 5000
+              },
+              {
+                "color": "red",
+                "value": 10000
+              }
+            ]
+          },
+          "unit": "decmbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 203,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_NTOPNG}"
+          },
+          "groupBy": [
+            {
+              "params": ["host::tag"],
+              "type": "tag"
+            }
+          ],
+          "measurement": "host:traffic",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "table",
+          "select": [
+            [
+              {
+                "params": ["bytes_sent"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              },
+              {
+                "params": ["Total Traffic (MB)"],
+                "type": "alias"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "ifid::tag",
+              "operator": "=~",
+              "value": "/^$iface_name$/"
+            }
+          ]
+        }
+      ],
+      "title": "Host Traffic Matrix",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Total Traffic (MB)",
+              "operator": "/",
+              "right": "1048576"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Total Traffic (MB)": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "host": "Host IP"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 204,
+      "panels": [],
+      "title": "Geographic Traffic Flows",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_NTOPNG}"
+      },
+      "description": "Geographic distribution of traffic flows worldwide",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1000
+              },
+              {
+                "color": "orange",
+                "value": 5000
+              },
+              {
+                "color": "red",
+                "value": 10000
+              }
+            ]
+          },
+          "unit": "decmbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 16,
+        "x": 0,
+        "y": 27
+      },
+      "id": 205,
+      "options": {
+        "basemap": {
+          "config": {},
+          "name": "Layer 0",
+          "type": "default"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false,
+          "showScale": false,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "field": "Total Traffic",
+                  "fixed": "dark-green"
+                },
+                "opacity": 0.8,
+                "rotation": {
+                  "fixed": 0,
+                  "max": 360,
+                  "min": -360,
+                  "mode": "mod"
+                },
+                "size": {
+                  "field": "Total Traffic",
+                  "fixed": 5,
+                  "max": 50,
+                  "min": 2
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                },
+                "textConfig": {
+                  "fontSize": 12,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
+              }
+            },
+            "location": {
+              "mode": "auto"
+            },
+            "name": "Layer 1",
+            "tooltip": true,
+            "type": "markers"
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        },
+        "view": {
+          "allLayers": true,
+          "id": "zero",
+          "lat": 0,
+          "lon": 0,
+          "zoom": 2
+        }
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_NTOPNG}"
+          },
+          "groupBy": [
+            {
+              "params": ["country::tag"],
+              "type": "tag"
+            }
+          ],
+          "measurement": "country:traffic",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "table",
+          "select": [
+            [
+              {
+                "params": ["bytes_sent"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              }
+            ],
+            [
+              {
+                "params": ["bytes_rcvd"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "ifid::tag",
+              "operator": "=~",
+              "value": "/^$iface_name$/"
+            }
+          ]
+        }
+      ],
+      "title": "Global Traffic Map",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Total Traffic",
+            "binary": {
+              "left": "bytes_sent (non_negative_difference) (sum)",
+              "operator": "+",
+              "right": "bytes_rcvd (non_negative_difference) (sum)"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Total Traffic",
+              "operator": "/",
+              "right": "1048576"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "bytes_rcvd (non_negative_difference) (sum)": true,
+              "bytes_sent (non_negative_difference) (sum)": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "country": "Country"
+            }
+          }
+        }
+      ],
+      "type": "geomap"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_NTOPNG}"
+      },
+      "description": "Top countries by traffic volume",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 8,
+        "x": 16,
+        "y": 27
+      },
+      "id": 206,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": {
+          "calcs": ["sum"],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value"]
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": ["sum"],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "alias": "$tag_country",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_NTOPNG}"
+          },
+          "groupBy": [
+            {
+              "params": ["country::tag"],
+              "type": "tag"
+            }
+          ],
+          "measurement": "country:traffic",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": ["bytes_sent"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              }
+            ],
+            [
+              {
+                "params": ["bytes_rcvd"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "ifid::tag",
+              "operator": "=~",
+              "value": "/^$iface_name$/"
+            }
+          ]
+        }
+      ],
+      "title": "Traffic by Country",
+      "type": "piechart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 39
+      },
+      "id": 207,
+      "panels": [],
+      "title": "ASN (Autonomous System) Analysis",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_NTOPNG}"
+      },
+      "description": "Traffic to different Autonomous Systems over time",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Traffic (MB)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "decmbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "id": 208,
+      "options": {
+        "legend": {
+          "calcs": ["sum", "mean"],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Total",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "alias": "ASN $tag_asn",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_NTOPNG}"
+          },
+          "groupBy": [
+            {
+              "params": ["$__interval"],
+              "type": "time"
+            },
+            {
+              "params": ["asn::tag"],
+              "type": "tag"
+            }
+          ],
+          "measurement": "asn:traffic",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": ["bytes_sent"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              }
+            ],
+            [
+              {
+                "params": ["bytes_rcvd"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "ifid::tag",
+              "operator": "=~",
+              "value": "/^$iface_name$/"
+            }
+          ]
+        }
+      ],
+      "title": "Traffic by Autonomous System (ASN) Over Time",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "bytes_sent (non_negative_difference) (sum)",
+              "operator": "/",
+              "right": "1048576"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "bytes_rcvd (non_negative_difference) (sum)",
+              "operator": "/",
+              "right": "1048576"
+            }
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_NTOPNG}"
+      },
+      "description": "Top ASNs with organization names from lookup table",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total Traffic (MB)"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-GrYlRd"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      },
+      "id": 209,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": true
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Total Traffic (MB)"
+          }
+        ]
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_NTOPNG}"
+          },
+          "groupBy": [
+            {
+              "params": ["asn::tag"],
+              "type": "tag"
+            }
+          ],
+          "measurement": "asn:traffic",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "table",
+          "select": [
+            [
+              {
+                "params": ["bytes_sent"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              },
+              {
+                "params": ["Sent (MB)"],
+                "type": "alias"
+              }
+            ],
+            [
+              {
+                "params": ["bytes_rcvd"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              },
+              {
+                "params": ["Received (MB)"],
+                "type": "alias"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "ifid::tag",
+              "operator": "=~",
+              "value": "/^$iface_name$/"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "${DS_NTOPNG-LUTS}"
+          },
+          "queryText": "SELECT asn, org FROM asn4",
+          "queryType": "table",
+          "refId": "B",
+          "timeColumns": []
+        }
+      ],
+      "title": "Top ASNs with Organization Names",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Total Traffic (MB)",
+            "binary": {
+              "left": "Sent (MB)",
+              "operator": "+",
+              "right": "Received (MB)"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Total Traffic (MB)",
+              "operator": "/",
+              "right": "1048576"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Sent (MB)",
+              "operator": "/",
+              "right": "1048576"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Received (MB)",
+              "operator": "/",
+              "right": "1048576"
+            }
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "asn",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Received (MB)": 3,
+              "Sent (MB)": 2,
+              "Total Traffic (MB)": 4,
+              "asn": 0,
+              "org": 1
+            },
+            "renameByName": {
+              "asn": "ASN",
+              "org": "Organization"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 60
+      },
+      "id": 210,
+      "panels": [],
+      "title": "Device Discovery (MAC Addresses)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_NTOPNG}"
+      },
+      "description": "All active MAC addresses with vendor information from OUI lookup",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total Traffic (MB)"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-BlYlRd"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 61
+      },
+      "id": 211,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": true
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Total Traffic (MB)"
+          }
+        ]
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_NTOPNG}"
+          },
+          "groupBy": [
+            {
+              "params": ["mac::tag"],
+              "type": "tag"
+            }
+          ],
+          "measurement": "mac:traffic",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "table",
+          "select": [
+            [
+              {
+                "params": ["bytes_sent"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              },
+              {
+                "params": ["Sent (MB)"],
+                "type": "alias"
+              }
+            ],
+            [
+              {
+                "params": ["bytes_rcvd"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              },
+              {
+                "params": ["Received (MB)"],
+                "type": "alias"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "ifid::tag",
+              "operator": "=~",
+              "value": "/^$iface_name$/"
+            }
+          ]
+        },
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "${DS_NTOPNG-LUTS}"
+          },
+          "queryText": "SELECT DISTINCT oui, org FROM oui",
+          "queryType": "table",
+          "refId": "B",
+          "timeColumns": []
+        }
+      ],
+      "title": "Device Inventory by MAC Address with Vendor Info",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Total Traffic (MB)",
+            "binary": {
+              "left": "Sent (MB)",
+              "operator": "+",
+              "right": "Received (MB)"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Total Traffic (MB)",
+              "operator": "/",
+              "right": "1048576"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Sent (MB)",
+              "operator": "/",
+              "right": "1048576"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Received (MB)",
+              "operator": "/",
+              "right": "1048576"
+            }
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "oui_match",
+            "mode": "reduceRow",
+            "reduce": {
+              "include": ["mac"],
+              "reducer": "first"
+            }
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "oui_match",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "oui": true,
+              "oui_match": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Received (MB)": 3,
+              "Sent (MB)": 2,
+              "Total Traffic (MB)": 4,
+              "mac": 0,
+              "org": 1,
+              "oui": 6,
+              "oui_match": 5
+            },
+            "renameByName": {
+              "mac": "MAC Address",
+              "org": "Vendor"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 73
+      },
+      "id": 212,
+      "panels": [],
+      "title": "Protocol Distribution",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_NTOPNG}"
+      },
+      "description": "Layer 4 protocol distribution (TCP, UDP, ICMP, etc.)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 74
+      },
+      "id": 213,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": {
+          "calcs": ["sum"],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value"]
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": ["sum"],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "alias": "$tag_l4proto",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_NTOPNG}"
+          },
+          "groupBy": [
+            {
+              "params": ["l4proto::tag"],
+              "type": "tag"
+            }
+          ],
+          "measurement": "iface:l4protos",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": ["bytes"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "ifid::tag",
+              "operator": "=~",
+              "value": "/^$iface_name$/"
+            }
+          ]
+        }
+      ],
+      "title": "Traffic by L4 Protocol",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_NTOPNG}"
+      },
+      "description": "Layer 4 protocol traffic over time",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "decmbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 74
+      },
+      "id": 214,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "last"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "alias": "$tag_l4proto",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_NTOPNG}"
+          },
+          "groupBy": [
+            {
+              "params": ["$__interval"],
+              "type": "time"
+            },
+            {
+              "params": ["l4proto::tag"],
+              "type": "tag"
+            }
+          ],
+          "measurement": "iface:l4protos",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": ["bytes"],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "max"
+              },
+              {
+                "params": [],
+                "type": "non_negative_difference"
+              },
+              {
+                "params": [],
+                "type": "sum"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "ifid::tag",
+              "operator": "=~",
+              "value": "/^$iface_name$/"
+            }
+          ]
+        }
+      ],
+      "title": "L4 Protocol Traffic Over Time",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "bytes (non_negative_difference) (sum)",
+              "operator": "/",
+              "right": "1048576"
+            }
+          }
+        }
+      ],
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["ntopng", "topology", "network", "flows"],
+  "templating": {
+    "list": [
+      {
+        "current": {
+            "selected": true,
+            "text": "ntopng",
+            "value": "ntopng"
+          },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "DS_NTOPNG",
+        "options": [],
+        "query": "influxdb",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "ntopng-luts",
+          "value": "ntopng-luts"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Lookup Tables",
+        "multi": false,
+        "name": "DS_NTOPNG-LUTS",
+        "options": [],
+        "query": "frser-sqlite-datasource",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "0",
+          "value": "0"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Interface Name",
+        "multi": false,
+        "name": "iface_name",
+        "options": [
+          {
+            "selected": true,
+            "text": "br-lan",
+            "value": "0"
+          },
+          {
+            "selected": false,
+            "text": "eth0",
+            "value": "1"
+          }
+        ],
+        "query": "br-lan : 0,eth0 : 1",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Network Topology and Flows",
+  "uid": "network-topology-flows",
+  "version": 1,
+  "weekStart": "",
+  "description": "Visual network topology, geographic flows, ASN analysis, and device discovery"
+}

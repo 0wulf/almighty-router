@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: ntopng
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    database: ${INFLUXDB_DB}
+    user: ${INFLUXDB_USER}
+    secureJsonData:
+      password: ${INFLUXDB_USER_PASSWORD}
+    jsonData:
+      httpMode: GET
+      timeInterval: "10s"
+      version: InfluxQL
+    isDefault: false

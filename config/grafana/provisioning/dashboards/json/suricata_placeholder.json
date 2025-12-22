@@ -1,0 +1,32 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "text",
+      "title": "Suricata Dashboard Placeholder",
+      "gridPos": {"x": 0, "y": 0, "w": 24, "h": 6},
+      "options": {
+        "content": "# Suricata dashboards\n\nEveBox is installed and ingesting `/var/log/suricata/eve.json`.\n\nNext steps:\n- Open EveBox at `http://<pi-ip>:5636` to triage alerts.\n- Configure Grafana panels to visualize Suricata metrics (we can add parsers to push stats to InfluxDB).",
+        "mode": "markdown"
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 26,
+  "style": "dark",
+  "tags": ["suricata"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Suricata Overview",
+  "uid": "suricata-overview",
+  "version": 1
+}
