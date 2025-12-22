@@ -1,0 +1,164 @@
+services:
+  redis:
+    image: redis:alpine
+    container_name: redis
+    command: ["--bind", "127.0.0.1", "--port", "6380", "--save", "300", "1", "--ignore-warnings", "ARM64-COW-BUG"]
+    volumes:
+      - ./config/redis/data:/data
+    network_mode: host
+    restart: unless-stopped
+
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    network_mode: host
+    env_file:
+      - .env
+    environment:
+      TZ: ${PIHOLE_TIMEZONE}
+      FTLCONF_webserver_api_password: ${PIHOLE_WEBPASSWORD}
+      DNS1: ${PIHOLE_DNS1}
+      DNS2: ${PIHOLE_DNS2}
+      IPv6: "false"
+      DNSMASQ_LISTENING: all
+      WEB_PORT: 80
+      INTERFACE: wlan0
+      DHCP_ACTIVE: "true"
+      DHCP_START: ${LAN_DHCP_START}
+      DHCP_END: ${LAN_DHCP_END}
+      DHCP_ROUTER: ${LAN_GW_IP}
+      DHCP_LEASETIME: ${LAN_DHCP_LEASE}
+    volumes:
+      - ./config/pihole/etc-pihole:/etc/pihole
+      - ./config/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+      - ./config/pihole/pihole-FTL.conf:/etc/pihole/pihole-FTL.conf
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    env_file:
+      - .env
+    environment:
+      INFLUXDB_HTTP_AUTH_ENABLED: "false"
+      INFLUXDB_DB: ${INFLUXDB_DB}
+      INFLUXDB_ADMIN_USER: ${INFLUXDB_ADMIN_USER}
+      INFLUXDB_ADMIN_PASSWORD: ${INFLUXDB_ADMIN_PASSWORD}
+      INFLUXDB_USER: ${INFLUXDB_USER}
+      INFLUXDB_USER_PASSWORD: ${INFLUXDB_USER_PASSWORD}
+    volumes:
+      - ./config/influxdb/data:/var/lib/influxdb
+      - ./config/influxdb/config:/etc/influxdb
+      - ./config/influxdb/init.iql:/docker-entrypoint-initdb.d/init.iql:ro
+    networks:
+      - monitoring
+    ports:
+      - "8086:8086"
+    healthcheck:
+      test: ["CMD", "influx", "-execute", "SHOW DATABASES"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  telegraf:
+    image: telegraf:latest
+    container_name: telegraf
+    user: "0:0"
+    network_mode: host
+    entrypoint: ["/bin/sh", "-c", "until curl -sf http://127.0.0.1:8086/ping; do sleep 2; done; exec telegraf"]
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - ./config/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    user: "472:472"
+    env_file:
+      - .env
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./config/grafana/data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    networks:
+      - monitoring
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+
+  ntopng:
+    image: ntop/ntopng_arm64.dev:latest
+    container_name: ntopng
+    network_mode: host
+    env_file:
+      - .env
+    command:
+      - "--community"
+      - "--interface=${LAN_IFACE}"
+      - "--interface=${WAN_IFACE}"
+      - "--local-networks=${LAN_CIDR}"
+      - "--redis=127.0.0.1:6380@0"
+      - "--http-port=3002"
+      - "--disable-autologout"
+      - "-F"
+      - "influxdb;127.0.0.1:8086;${INFLUXDB_DB};${INFLUXDB_USER};${INFLUXDB_USER_PASSWORD}"
+    volumes:
+      - ./config/ntopng/data:/var/lib/ntopng
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
+  # evebox:
+  #   image: jasonish/evebox:latest
+  #   container_name: evebox
+  #   # Run on the bridge 'monitoring' network and publish the HTTP port
+  #   networks:
+  #     - monitoring
+  #   ports:
+  #     - "5636:5636"
+  #   env_file:
+  #     - .env
+  #   command: ["evebox", "server", "-D", "/data", "/var/log/suricata/eve.json"]
+  #   environment:
+  #     - EVEBOX_HTTP_ADDR=0.0.0.0:5636
+  #     - EVEBOX_DB_DIR=/data
+  #   volumes:
+  #     - ./config/suricata/log:/var/log/suricata:ro
+  #     - ./config/evebox/db:/data
+  #   restart: unless-stopped
+
+  suricata:
+    image: jasonish/suricata:latest
+    container_name: suricata
+    network_mode: host
+    env_file:
+      - .env
+    command: ["-i", "${WAN_IFACE}", "-i", "${LAN_IFACE}", "-c", "/etc/suricata/suricata.yaml"]
+    volumes:
+      - ./config/suricata/suricata.yaml:/etc/suricata/suricata.yaml
+      - ./config/suricata/rules:/var/lib/suricata/rules
+      - ./config/suricata/log:/var/log/suricata
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_NICE
+    restart: unless-stopped
+
+networks:
+  monitoring:
+    driver: bridge
