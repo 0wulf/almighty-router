@@ -117,6 +117,47 @@ EOF
 }
 
 ########################################
+# RF-kill unblock service + hostapd dependency
+########################################
+configure_rfkill_unblock() {
+  log "Installing rfkill unblock service and hostapd unit override"
+
+  # Remove saved rfkill states so systemd won't reapply a soft-block
+  rm -f /var/lib/systemd/rfkill/* 2>/dev/null || true
+
+  # Create the rfkill-unblock systemd service
+  cat >/etc/systemd/system/rfkill-unblock.service <<EOF
+[Unit]
+Description=Unblock WiFi RFKill on boot
+Before=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/rfkill unblock wifi
+ExecStart=/usr/sbin/ip link set ${LAN_IFACE} up
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  # Ensure hostapd waits for rfkill-unblock
+  mkdir -p /etc/systemd/system/hostapd.service.d
+  cat >/etc/systemd/system/hostapd.service.d/override.conf <<EOF
+[Unit]
+After=rfkill-unblock.service
+Wants=rfkill-unblock.service
+EOF
+
+  systemctl daemon-reload
+  # Enable and start the unblock service immediately
+  systemctl enable --now rfkill-unblock.service || true
+
+  log "rfkill-unblock service installed and enabled"
+}
+
+########################################
 # Validate environment and write Pi-hole DHCP config
 ########################################
 validate_env() {
@@ -195,9 +236,37 @@ EOF
     echo "INTERFACESv4=\"${LAN_IFACE}\"" > /etc/default/isc-dhcp-server
   fi
 
+  # Ensure isc-dhcp-server starts after dhcpcd (so the interface has its static IP)
+  mkdir -p /etc/systemd/system/isc-dhcp-server.service.d
+  cat >/etc/systemd/system/isc-dhcp-server.service.d/override.conf <<EOF
+[Unit]
+After=dhcpcd.service rfkill-unblock.service network-online.target
+Wants=dhcpcd.service rfkill-unblock.service network-online.target
+EOF
+
+  systemctl daemon-reload
   systemctl enable isc-dhcp-server
-  systemctl restart isc-dhcp-server
-  log "Host DHCP configured and service restarted"
+  systemctl restart isc-dhcp-server || true
+  log "Host DHCP configured; isc-dhcp-server enabled (may start after network online)"
+}
+
+########################################
+# Ensure Grafana host data dirs exist and are writable by Grafana user
+########################################
+configure_grafana_permissions() {
+  log "Ensuring Grafana data directories exist and have correct ownership"
+
+  local grafana_dir="$REPO_DIR/config/grafana"
+  mkdir -p "$grafana_dir/data"
+  mkdir -p "$grafana_dir/provisioning"
+  mkdir -p "$grafana_dir/data/plugins"
+
+  # Grafana runs as UID/GID 472 inside the container. Set ownership numerically
+  # so it works even if the host has no 'grafana' user.
+  chown -R 472:472 "$grafana_dir" || true
+  chmod -R 750 "$grafana_dir" || true
+
+  log "Grafana directories prepared: $grafana_dir"
 }
 
 ########################################
@@ -444,12 +513,14 @@ main() {
   disable_conflicting_services
   install_docker
   enable_ip_forwarding
+    configure_rfkill_unblock
   validate_env
   configure_dhcpcd
   configure_hostapd
   configure_nftables
   configure_docker_iptables  # Added this step
   configure_host_dhcp
+  configure_grafana_permissions
   deploy_stack
   restart_pihole
 

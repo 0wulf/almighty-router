@@ -45,8 +45,8 @@ services:
       INFLUXDB_USER_PASSWORD: ${INFLUXDB_USER_PASSWORD}
     volumes:
       - ./config/influxdb/data:/var/lib/influxdb
-      - ./config/influxdb/config:/etc/influxdb
-      - ./config/influxdb/init.iql:/docker-entrypoint-initdb.d/init.iql:ro
+      - ./config/influxdb:/etc/influxdb
+      - ./config/influxdb/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
     networks:
       - monitoring
     ports:
