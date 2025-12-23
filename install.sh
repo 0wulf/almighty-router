@@ -121,21 +121,48 @@ EOF
 ########################################
 configure_rfkill_unblock() {
   log "Installing rfkill unblock service and hostapd unit override"
-
   # Remove saved rfkill states so systemd won't reapply a soft-block
   rm -f /var/lib/systemd/rfkill/* 2>/dev/null || true
 
-  # Create the rfkill-unblock systemd service
+  # Create a small retrying script that unblocks and brings the interface up
+  cat >/usr/local/bin/rfkill-unblock.sh <<'SCRIPT'
+#!/bin/sh
+set -eu
+IFACE="${LAN_IFACE}"
+tries=0
+max=8
+until [ "$tries" -ge "$max" ]; do
+  /usr/sbin/rfkill unblock wifi || true
+  /sbin/ip link set "$IFACE" up 2>/dev/null || true
+
+  # check soft-block
+  if /usr/sbin/rfkill list all | grep -qi 'Soft blocked: no'; then
+    # bring it up; if success exit
+    if ip -4 addr show dev "$IFACE" >/dev/null 2>&1; then
+      exit 0
+    fi
+  fi
+
+  tries=$((tries+1))
+  sleep 1
+done
+# if we reach here, try one last unblock and exit non-zero to let systemd know
+/usr/sbin/rfkill unblock wifi || true
+/sbin/ip link set "$IFACE" up || true
+exit 1
+SCRIPT
+  chmod +x /usr/local/bin/rfkill-unblock.sh || true
+
+  # Create the rfkill-unblock systemd service to call the script
   cat >/etc/systemd/system/rfkill-unblock.service <<EOF
 [Unit]
-Description=Unblock WiFi RFKill on boot
+Description=Unblock WiFi RFKill on boot (retrying)
 Before=network-pre.target
 Wants=network-pre.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/rfkill unblock wifi
-ExecStart=/usr/sbin/ip link set ${LAN_IFACE} up
+ExecStart=/usr/local/bin/rfkill-unblock.sh
 RemainAfterExit=yes
 
 [Install]
@@ -151,10 +178,10 @@ Wants=rfkill-unblock.service
 EOF
 
   systemctl daemon-reload
-  # Enable and start the unblock service immediately
+  # Enable and start the unblock service immediately (best-effort)
   systemctl enable --now rfkill-unblock.service || true
 
-  log "rfkill-unblock service installed and enabled"
+  log "rfkill-unblock service and helper script installed and enabled"
 }
 
 ########################################
