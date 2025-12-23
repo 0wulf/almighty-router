@@ -17,17 +17,12 @@ services:
     environment:
       TZ: ${PIHOLE_TIMEZONE}
       FTLCONF_webserver_api_password: ${PIHOLE_WEBPASSWORD}
-      DNS1: ${PIHOLE_DNS1}
-      DNS2: ${PIHOLE_DNS2}
+      FTLCONF_dns_revServers: 'true,${LAN_CIDR},${LAN_GW_IP},lan'
+      FTLCONF_dns_upstreams: '${PIHOLE_DNS1};${PIHOLE_DNS2}'
       IPv6: "false"
-      DNSMASQ_LISTENING: all
-      WEB_PORT: 80
-      INTERFACE: wlan0
-      DHCP_ACTIVE: "true"
-      DHCP_START: ${LAN_DHCP_START}
-      DHCP_END: ${LAN_DHCP_END}
-      DHCP_ROUTER: ${LAN_GW_IP}
-      DHCP_LEASETIME: ${LAN_DHCP_LEASE}
+      # DNSMASQ_LISTENING: all
+      # WEB_PORT: 80
+      # INTERFACE: ${LAN_IFACE}
     volumes:
       - ./config/pihole/etc-pihole:/etc/pihole
       - ./config/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
